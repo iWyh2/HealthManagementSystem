@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wyh.dao.CheckGroupDao">
+    <!--新增-->
+    <insert id="add" parameterType="com.wyh.pojo.CheckGroup">
+        <!--使用mybatis提供的selectKey获取id-->
+        <selectKey resultType="java.lang.Integer" order="AFTER" keyProperty="id">
+            <!--获取添加数据后自动生成的id函数 自动封装到CheckGroup类的id字段上-->
+            SELECT LAST_INSERT_ID()
+        </selectKey>
+        insert into t_checkgroup(code,name,sex,helpCode,remark,attention)
+        values
+        (#{code},#{name},#{sex},#{helpCode},#{remark},#{attention})
+    </insert>
+
+    <!--设置检查组和检查项的多对多关联关系-->
+    <insert id="setCheckGroupAndCheckItem" parameterType="hashmap">
+        insert into t_checkgroup_checkitem(checkgroup_id,checkitem_id)
+        values(#{checkgroupId},#{checkitemId})
+    </insert>
+
+    <!--编辑-->
+    <update id="edit" parameterType="com.wyh.pojo.CheckGroup">
+        update t_checkgroup
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="sex != null">
+                sex = #{sex},
+            </if>
+            <if test="code != null">
+                code = #{code},
+            </if>
+            <if test="helpCode != null">
+                helpCode = #{helpCode},
+            </if>
+            <if test="attention != null">
+                attention = #{attention},
+            </if>
+            <if test="remark != null">
+                remark = #{remark},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--根据id删除检查项的关联关系-->
+    <delete id="deleteAssociation" parameterType="Integer">
+        delete from t_checkgroup_checkitem where checkgroup_id = #{id}
+    </delete>
+
+    <!--根据条件查询-->
+    <select id="selectByCondition" resultType="com.wyh.pojo.CheckGroup" parameterType="String">
+        select * from t_checkgroup
+        <if test="value != null and value.length > 0">
+            where code = #{value} or name = #{value} or helpCode = #{value}
+        </if>
+    </select>
+
+    <!--根据id查询-->
+    <select id="findById" resultType="com.wyh.pojo.CheckGroup" parameterType="Integer">
+        select * from t_checkgroup where id = #{id}
+    </select>
+
+    <!--根据id查询-->
+    <select id="findCheckItemIdsByCheckGroupId" resultType="java.lang.Integer">
+        select checkitem_id from t_checkgroup_checkitem where checkgroup_id = #{id}
+    </select>
+
+    <!--查询所有-->
+    <select id="findAll" resultType="com.wyh.pojo.CheckGroup">
+        select * from t_checkgroup
+    </select>
+
+    <!--基本信息的映射-->
+    <resultMap type="com.wyh.pojo.CheckGroup" id="baseResultMap">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="code" property="code"/>
+        <result column="helpCode" property="helpCode"/>
+        <result column="sex" property="sex"/>
+        <result column="remark" property="remark"/>
+        <result column="attention" property="attention"/>
+    </resultMap>
+    <resultMap type="com.wyh.pojo.CheckGroup"
+               id="findByIdResultMap"
+               extends="baseResultMap">
+        <collection property="checkItems"
+                    javaType="ArrayList"
+                    ofType="com.wyh.pojo.CheckItem"
+                    column="id"
+                    select="com.wyh.dao.CheckItemDao.findCheckItemById">
+        </collection>
+    </resultMap>
+
+    <!--根据套餐id查询检查项信息 嵌套查询-->
+    <select id="findCheckGroupById" resultMap="findByIdResultMap">
+        select * from t_checkgroup
+        where id in
+        (select checkgroup_id from t_setmeal_checkgroup where setmeal_id=#{id})
+    </select>
+</mapper>
